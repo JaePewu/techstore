@@ -1,0 +1,83 @@
+version: "3.8"
+ 
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: techstore
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin123
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - techstore_overlay
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d techstore"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 512M
+ 
+  techstore-api:
+    image: techstore-api:latest
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/techstore
+      SPRING_DATASOURCE_USERNAME: admin
+      SPRING_DATASOURCE_PASSWORD: admin123
+    networks:
+      - techstore_overlay
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+      resources:
+        limits:
+          cpus: "0.75"
+          memory: 768M
+ 
+  api-gateway:
+    image: api-gateway:latest
+    ports:
+      - "8080:8080"
+    networks:
+      - techstore_overlay
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 512M
+ 
+networks:
+  techstore_overlay:
+    driver: overlay
+    attachable: true
+ 
+volumes:
+  postgres_data:

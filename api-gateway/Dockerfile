@@ -1,0 +1,18 @@
+FROM eclipse-temurin:21-jre-alpine
+ 
+WORKDIR /app
+ 
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+ 
+COPY target/api-gateway-0.0.1.jar app.jar
+ 
+RUN chown -R appuser:appgroup /app
+ 
+USER appuser
+ 
+EXPOSE 8080
+
+#HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+ # CMD curl -f http://localhost:8083/actuator/health || exit 1
+
+ENTRYPOINT ["java", "-jar", "app.jar"]

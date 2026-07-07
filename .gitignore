@@ -1,0 +1,8 @@
+techstore-api-task.json
+.env
+*.env
+.aws/
+credentials
+techstore-api-task.json
+target/
+.DS_Store
