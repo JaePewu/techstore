@@ -1,10 +1,9 @@
-# TechStore Cloud
+# TechStore
 
-Microservicio RESTful desarrollado en Java con Spring Boot para la tienda ficticia **TechStore Chile**.
+TechStore es una API REST desarrollada con Java y Spring Boot para administrar productos de una tienda ficticia.  
+El sistema permite autenticar usuarios mediante JWT, gestionar productos con operaciones CRUD, aplicar borrado lógico y persistir la información en PostgreSQL.
 
-El proyecto permite gestionar productos mediante una API protegida con JWT, persistencia en PostgreSQL, envío de eventos de auditoría a SQS, despliegue en contenedores Docker y despliegue cloud en AWS usando ECR, ECS Fargate, RDS, SQS, Lambda, CloudWatch, Application Load Balancer, API Gateway y GitHub Actions.
-
-Este proyecto fue desarrollado como parte de la **Evaluación Sumativa 3** del curso **JVY0101 - Java: Diseño y Construcción de Soluciones nativas en Nube**.
+El proyecto incorpora contenedores Docker, despliegue en AWS con ECS Fargate, exposición mediante Application Load Balancer y API Gateway, auditoría asíncrona con SQS y Lambda, monitoreo con CloudWatch y automatización de despliegue mediante GitHub Actions.
 
 ---
 
@@ -14,20 +13,23 @@ Este proyecto fue desarrollado como parte de la **Evaluación Sumativa 3** del c
 - [Objetivo del proyecto](#objetivo-del-proyecto)
 - [Funcionalidades principales](#funcionalidades-principales)
 - [Arquitectura general](#arquitectura-general)
-- [Estructura del proyecto](#estructura-del-proyecto)
+- [Diagrama general de arquitectura](#diagrama-general-de-arquitectura)
+- [Microservicio principal y componentes](#microservicio-principal-y-componentes)
 - [Tecnologías utilizadas](#tecnologías-utilizadas)
-- [Microservicios y componentes](#microservicios-y-componentes)
-- [Seguridad con JWT](#seguridad-con-jwt)
 - [Base de datos](#base-de-datos)
-- [Auditoría con SQS y Lambda](#auditoría-con-sqs-y-lambda)
-- [Ejecución local](#ejecución-local)
-- [Ejecución con Docker / Docker Swarm](#ejecución-con-docker--docker-swarm)
-- [Despliegue en AWS](#despliegue-en-aws)
-- [CI/CD con GitHub Actions](#cicd-con-github-actions)
+- [Usuarios de prueba para login](#usuarios-de-prueba-para-login)
+- [Ejecución local con Docker Compose](#ejecución-local-con-docker-compose)
+- [Despliegue cloud en AWS](#despliegue-cloud-en-aws)
+- [Servicios AWS utilizados](#servicios-aws-utilizados)
+- [Escalabilidad y monitoreo en ECS Fargate](#escalabilidad-y-monitoreo-en-ecs-fargate)
 - [Endpoints principales](#endpoints-principales)
 - [Uso del token en Postman](#uso-del-token-en-postman)
-- [Evidencias](#evidencias)
+- [Flujo de auditoría con SQS y Lambda](#flujo-de-auditoría-con-sqs-y-lambda)
+- [CI/CD con GitHub Actions](#cicd-con-github-actions)
 - [Comandos útiles](#comandos-útiles)
+- [Evidencias técnicas](#evidencias-técnicas)
+- [Mejora propuesta](#mejora-propuesta)
+- [Declaración de uso de IA](#declaración-de-uso-de-ia)
 - [Estado final del proyecto](#estado-final-del-proyecto)
 
 ---
@@ -41,158 +43,34 @@ Este proyecto fue desarrollado como parte de la **Evaluación Sumativa 3** del c
 
 ## Objetivo del proyecto
 
-Construir y desplegar una solución cloud basada en microservicios, aplicando los contenidos trabajados en clases:
+El objetivo de TechStore es implementar una API REST funcional para la gestión de productos, aplicando una arquitectura por capas en Spring Boot y utilizando servicios cloud para su despliegue, monitoreo, persistencia y procesamiento asíncrono.
 
-- Spring Boot.
-- API REST.
-- Seguridad con JWT.
-- Arquitectura por capas.
-- PostgreSQL local y PostgreSQL en AWS RDS.
-- Docker y Docker Compose / Docker Swarm.
-- Amazon ECR.
-- Amazon ECS Fargate.
-- Application Load Balancer.
-- Amazon API Gateway.
-- Amazon SQS.
-- AWS Lambda.
-- Amazon CloudWatch Logs.
-- CI/CD con GitHub Actions.
-- Pruebas con Postman.
+El sistema permite administrar productos de una tienda ficticia, proteger endpoints mediante JWT, persistir información en PostgreSQL y ejecutar la aplicación en un entorno cloud basado en AWS.
 
 ---
 
 ## Funcionalidades principales
 
-- Login con JWT.
-- Listar productos activos.
-- Crear productos.
-- Modificar productos.
-- Eliminar productos mediante borrado lógico.
-- Persistencia de productos en PostgreSQL.
-- Envío de eventos de auditoría a Amazon SQS.
-- Procesamiento automático de eventos mediante Lambda.
-- Registro de logs en CloudWatch.
+- Login con autenticación JWT.
+- Listado de productos activos.
+- Creación de productos.
+- Modificación de productos.
+- Eliminación mediante borrado lógico.
+- Persistencia en PostgreSQL.
+- Ejecución local mediante Docker Compose.
+- Imagen Docker publicada en Amazon ECR.
 - Despliegue del microservicio en ECS Fargate.
-- Exposición del servicio mediante ALB y API Gateway.
-- Pipeline CI/CD para construir imagen Docker, subirla a ECR y actualizar ECS.
+- Exposición mediante Application Load Balancer.
+- Exposición controlada mediante API Gateway.
+- Auditoría asíncrona mediante SQS y Lambda.
+- Registro de logs en CloudWatch.
+- Pipeline CI/CD con GitHub Actions.
 
 ---
 
 ## Arquitectura general
 
-### Arquitectura local
-
-```text
-Frontend / Postman
-        ↓
-API Gateway local
-        ↓
-TechStore API
-        ↓
-PostgreSQL en Docker
-```
-
-### Arquitectura en AWS
-
-```text
-Postman / Navegador
-        ↓
-Amazon API Gateway
-        ↓
-Application Load Balancer
-        ↓
-ECS Fargate - techstore-api-service
-        ↓
-Amazon RDS PostgreSQL
-
-TechStore API
-        ↓
-Amazon SQS - techstore-audit-queue
-        ↓
-AWS Lambda - techstore-audit-logger
-        ↓
-Amazon CloudWatch Logs
-```
-
----
-
-## Estructura del proyecto
-
-```text
-techstore-2/
-│
-├── .github/
-│   └── workflows/
-│       └── deploy.yml
-│
-├── api-gateway/
-│   ├── Dockerfile
-│   ├── pom.xml
-│   └── src/
-│
-├── techstore-api/
-│   ├── Dockerfile
-│   ├── pom.xml
-│   └── src/
-│       └── main/
-│           ├── java/cl/techstore/techstore_api/
-│           │   ├── controller/
-│           │   ├── dto/
-│           │   ├── model/
-│           │   ├── repository/
-│           │   ├── security/
-│           │   └── service/
-│           └── resources/
-│               └── application.properties
-│
-├── frontend/
-│   ├── index.html
-│   ├── style.css
-│   └── app.js
-│
-├── evidencias/
-│   └── README_EVIDENCIAS_TECHSTORE.md
-│
-├── docker-compose.yml
-└── README.md
-```
-
----
-
-## Tecnologías utilizadas
-
-- Java 21.
-- Spring Boot 3.2.5.
-- Spring Web.
-- Spring Data JPA.
-- Spring Security.
-- JWT.
-- PostgreSQL.
-- Docker.
-- Docker Compose.
-- Docker Swarm.
-- Maven.
-- Postman.
-- Git y GitHub.
-- GitHub Actions.
-- Amazon ECR.
-- Amazon ECS Fargate.
-- Amazon RDS PostgreSQL.
-- Amazon SQS.
-- AWS Lambda.
-- Amazon CloudWatch Logs.
-- Amazon API Gateway.
-- Application Load Balancer.
-
----
-
-## Microservicios y componentes
-
-### 1. `techstore-api`
-
-Microservicio principal del proyecto. Expone los endpoints de autenticación, salud y gestión de productos.
-
-Capas principales:
+El proyecto utiliza una arquitectura por capas dentro del microservicio Spring Boot:
 
 ```text
 Controller → Service → Repository → Base de datos
@@ -200,318 +78,256 @@ Controller → Service → Repository → Base de datos
       DTO / Model
         ↓
      Security JWT
-        ↓
-   Auditoría SQS
 ```
 
-Responsabilidades:
+### Capas principales
 
-- Autenticación con JWT.
-- CRUD de productos.
-- Borrado lógico de productos.
-- Persistencia en PostgreSQL.
-- Envío de eventos de auditoría a SQS.
-
-### 2. `api-gateway`
-
-Gateway local desarrollado con Spring Cloud Gateway.
-
-Responsabilidades:
-
-- Recibir peticiones en el puerto `8080`.
-- Redirigir las rutas `/api/**` hacia `techstore-api`.
-- Permitir integración con frontend local y Postman.
-
-### 3. `frontend`
-
-Frontend simple en HTML, CSS y JavaScript para probar login y gestión de productos desde navegador.
+- `controller`: recibe las peticiones HTTP.
+- `service`: contiene la lógica de negocio.
+- `repository`: conecta con la base de datos mediante JPA.
+- `model`: contiene la entidad Producto.
+- `dto`: contiene los objetos de transferencia de datos.
+- `security`: contiene la configuración de JWT, filtros y seguridad.
+- `config`: contiene configuraciones de apoyo del sistema.
+- `audit`: contiene la lógica relacionada con eventos de auditoría.
 
 ---
 
-## Seguridad con JWT
+## Diagrama general de arquitectura
 
-La API utiliza Spring Security y JWT.
+El sistema se desplegó en AWS utilizando servicios administrados para ejecutar, exponer, persistir y monitorear el microservicio.
 
-Endpoints públicos:
-
-```text
-POST /api/auth/login
-GET  /api/health
-```
-
-Todos los demás endpoints requieren token JWT mediante header:
+Flujo principal:
 
 ```text
-Authorization: Bearer TOKEN_GENERADO
-```
-
-Usuarios de prueba:
-
-| Usuario | Contraseña | Rol |
-|---|---|---|
-| `admin` | `admin` | ADMIN |
-| `user` | `password` | USER |
-
----
-
-## Base de datos
-
-### Base de datos local con Docker
-
-El proyecto utiliza PostgreSQL mediante Docker.
-
-Datos de conexión local:
-
-| Dato | Valor |
-|---|---|
-| Base de datos | `techstore` |
-| Usuario | `admin` |
-| Contraseña | `admin123` |
-| Puerto local | `5433` |
-| Puerto interno Docker | `5432` |
-
-> La contraseña `admin123` corresponde al ambiente local de desarrollo, no al login de la API.
-
-### Base de datos en AWS RDS
-
-En AWS Academy se utilizó una instancia PostgreSQL en Amazon RDS.
-
-| Dato | Valor usado en evidencias |
-|---|---|
-| Identificador | `techstore-db` |
-| Motor | PostgreSQL |
-| Base inicial | `techstore` |
-| Usuario | `postgres` |
-| Endpoint | `techstore-db.chmha6fn68zs.us-east-1.rds.amazonaws.com` |
-
-> La contraseña de RDS no se ha subir al repositorio ni se muestra en evidencias.
-
----
-
-## Auditoría con SQS y Lambda
-
-El microservicio envía eventos de auditoría a Amazon SQS cada vez que se realiza una operación sobre productos.
-
-Acciones auditadas:
-
-- `CREAR`
-- `MODIFICAR`
-- `ELIMINAR`
-
-Ejemplo de mensaje enviado a SQS:
-
-```json
-{
-  "accion": "CREAR",
-  "productoId": 1,
-  "nombre": "Mouse Logitech",
-  "usuario": "admin",
-  "fecha": "2026-07-02T03:12:53"
-}
-```
-
-Flujo:
-
-```text
-POST / PUT / DELETE producto
+Postman / Cliente
         ↓
-ProductoService
+Amazon API Gateway
         ↓
-AuditoriaSqsService
+Application Load Balancer
+        ↓
+ECS Fargate - techstore-api
+        ↓
+Amazon RDS PostgreSQL
+```
+
+Flujo de auditoría asíncrona:
+
+```text
+techstore-api
         ↓
 Amazon SQS
         ↓
 AWS Lambda
         ↓
-CloudWatch Logs
+Amazon CloudWatch Logs
 ```
 
-Recursos usados en AWS Academy:
+Flujo de despliegue automatizado:
 
-| Recurso | Nombre |
-|---|---|
-| Cola SQS | `techstore-audit-queue` |
-| Lambda | `techstore-audit-logger` |
-| Logs Lambda | `/aws/lambda/techstore-audit-logger` |
+```text
+GitHub Actions
+        ↓
+Amazon ECR
+        ↓
+ECS Fargate
+```
+
+Este diagrama permite visualizar cómo se expone la API, cómo se ejecuta el microservicio, cómo se persisten los datos y cómo se procesan eventos de auditoría de forma asíncrona.
 
 ---
 
-## Ejecución local
+## Microservicio principal y componentes
 
-### 1. Generar archivo `.jar` de `techstore-api`
+### `techstore-api`
 
-Desde la carpeta `techstore-api`:
+Microservicio principal desarrollado con Spring Boot.  
+Contiene la lógica de autenticación, seguridad JWT, CRUD de productos, conexión a PostgreSQL y envío de eventos de auditoría hacia SQS.
+
+### `api-gateway`
+
+Componente utilizado en el entorno local para enrutar peticiones durante pruebas con Docker Compose.  
+En AWS, el punto de entrada principal corresponde a Amazon API Gateway.
+
+### `frontend`
+
+Carpeta considerada para componentes visuales o pruebas de integración, según el avance del proyecto.
+
+### `.github/workflows`
+
+Contiene el workflow de GitHub Actions utilizado para construir la imagen Docker, publicarla en Amazon ECR y actualizar el servicio ECS.
+
+---
+
+## Tecnologías utilizadas
+
+- Java 21
+- Spring Boot
+- Spring Web
+- Spring Data JPA
+- Spring Security
+- JWT
+- PostgreSQL
+- Docker
+- Docker Compose
+- Maven
+- Postman
+- Git / GitHub
+- GitHub Actions
+- Amazon ECR
+- Amazon ECS Fargate
+- Amazon RDS PostgreSQL
+- Amazon SQS
+- AWS Lambda
+- Amazon CloudWatch Logs
+- Application Load Balancer
+- Amazon API Gateway
+
+---
+
+## Base de datos
+
+El proyecto utiliza PostgreSQL.
+
+### Entorno local
+
+En entorno local, PostgreSQL puede ejecutarse mediante Docker Compose.
+
+Datos de conexión local referenciales:
+
+```text
+Base de datos: techstore
+Usuario: admin
+Contraseña: admin123
+Puerto local: 5433
+Puerto interno Docker: 5432
+```
+
+> La contraseña `admin123` corresponde al entorno local de PostgreSQL y no debe confundirse con credenciales de AWS o credenciales productivas.
+
+### Entorno AWS
+
+En AWS, la base de datos se ejecuta mediante Amazon RDS PostgreSQL.
+
+Datos generales:
+
+```text
+Motor: PostgreSQL
+Base de datos: techstore
+Servicio: Amazon RDS
+Región: us-east-1
+```
+
+> La contraseña de RDS no se debe subir al repositorio ni mostrarse en evidencias.
+
+---
+
+## Usuarios de prueba para login
+
+Usuario administrador:
+
+```text
+Usuario: admin
+Contraseña: admin
+Rol: ADMIN
+```
+
+Usuario estándar:
+
+```text
+Usuario: user
+Contraseña: password
+Rol: USER
+```
+
+---
+
+## Ejecución local con Docker Compose
+
+Desde la raíz del proyecto, generar primero el archivo `.jar`:
 
 ```bash
-./mvnw clean package -DskipTests
+./mvnw package -DskipTests
 ```
 
 En Windows CMD o PowerShell:
 
 ```bash
-mvnw.cmd clean package -DskipTests
+mvnw.cmd package -DskipTests
 ```
 
-### 2. Generar archivo `.jar` de `api-gateway`
-
-Desde la carpeta `api-gateway`:
+Luego ejecutar:
 
 ```bash
-./mvnw clean package -DskipTests
+docker compose down
+docker compose up --build
 ```
 
-En Windows CMD o PowerShell:
+Esto levanta:
 
-```bash
-mvnw.cmd clean package -DskipTests
-```
+- Contenedor de PostgreSQL.
+- Contenedor del microservicio Spring Boot.
+- Componentes definidos en `docker-compose.yml`.
 
----
-
-## Ejecución con Docker / Docker Swarm
-
-El archivo `docker-compose.yml` define tres servicios:
-
-- `postgres`
-- `techstore-api`
-- `api-gateway`
-
-### 1. Construir imagen de `techstore-api`
-
-Desde la raíz del proyecto:
-
-```bash
-docker build -t techstore-api ./techstore-api
-```
-
-### 2. Construir imagen de `api-gateway`
-
-```bash
-docker build -t api-gateway ./api-gateway
-```
-
-### 3. Levantar con Docker Compose
-
-```bash
-docker compose up -d
-```
-
-### 4. Levantar con Docker Swarm
-
-Si Docker Swarm no está iniciado:
-
-```bash
-docker swarm init
-```
-
-Desplegar el stack:
-
-```bash
-docker stack deploy -c docker-compose.yml techstore
-```
-
-Ver servicios:
-
-```bash
-docker service ls
-```
-
-Ver contenedores:
+Para verificar los contenedores activos:
 
 ```bash
 docker ps
 ```
 
-Probar health local:
+---
 
-```bash
-curl http://localhost:8080/api/health
-```
+## Despliegue cloud en AWS
 
-Respuesta esperada:
+El despliegue cloud se realizó utilizando servicios administrados de AWS.
 
-```text
-OK
-```
+Flujo general:
+
+1. Se construye la imagen Docker del microservicio.
+2. La imagen se publica en Amazon ECR.
+3. ECS Fargate ejecuta el contenedor.
+4. El Application Load Balancer distribuye el tráfico hacia la tarea ECS.
+5. API Gateway expone el acceso principal a la API.
+6. El microservicio se conecta a RDS PostgreSQL.
+7. Las operaciones generan eventos enviados a SQS.
+8. Lambda procesa los eventos de auditoría.
+9. CloudWatch registra logs de la aplicación y de Lambda.
 
 ---
 
-## Despliegue en AWS
+## Servicios AWS utilizados
 
-El despliegue cloud se realizó en AWS Academy, región `us-east-1`.
-
-Recursos principales:
-
-| Servicio | Recurso |
+| Servicio | Uso dentro del proyecto |
 |---|---|
-| ECR | `techstore-api` |
-| RDS | `techstore-db` |
-| SQS | `techstore-audit-queue` |
-| Lambda | `techstore-audit-logger` |
-| CloudWatch Logs | `/ecs/techstore-api` y `/aws/lambda/techstore-audit-logger` |
-| ECS Cluster | `techstore-cluster` |
-| ECS Task Definition | `techstore-api-task:1` |
-| ECS Service | `techstore-api-service` |
-| Target Group | `techstore-api-tg` |
-| ALB | `techstore-alb` |
-| API Gateway | `techstore-api-gw` |
-
-### URL del ALB usada en evidencias
-
-```text
-http://techstore-alb-376766229.us-east-1.elb.amazonaws.com/api/health
-```
-
-Respuesta esperada:
-
-```text
-OK
-```
-
-### URL de API Gateway usada en evidencias
-
-```text
-https://c2uyh7lax4.execute-api.us-east-1.amazonaws.com/prod/api/health
-```
-
-Respuesta esperada:
-
-```text
-OK
-```
-
-> Las URLs de AWS Academy pueden dejar de funcionar si el laboratorio se detiene, se reinicia o expiran las credenciales temporales.
+| Amazon ECR | Almacenar la imagen Docker del microservicio |
+| Amazon ECS Fargate | Ejecutar el contenedor sin administrar servidores EC2 |
+| Amazon RDS PostgreSQL | Persistir la información de productos |
+| Amazon SQS | Recibir eventos de auditoría generados por la API |
+| AWS Lambda | Procesar mensajes de auditoría desde SQS |
+| Amazon CloudWatch Logs | Registrar logs del microservicio y de Lambda |
+| Application Load Balancer | Distribuir tráfico hacia ECS |
+| Amazon API Gateway | Exponer la API como punto de entrada |
+| GitHub Actions | Automatizar build, push y despliegue |
 
 ---
 
-## CI/CD con GitHub Actions
+## Escalabilidad y monitoreo en ECS Fargate
 
-El proyecto incluye el workflow:
+El servicio `techstore-api-service` fue desplegado en ECS Fargate con una tarea en ejecución para el entorno de laboratorio.
 
-```text
-.github/workflows/deploy.yml
-```
+ECS Fargate permite ejecutar contenedores sin administrar servidores EC2 directamente. En caso de falla de una tarea, ECS puede iniciar una nueva tarea para mantener el estado deseado del servicio.
 
-Este pipeline realiza:
-
-1. Checkout del repositorio.
-2. Configuración de Java 21.
-3. Compilación de `techstore-api` con Maven.
-4. Configuración de credenciales AWS.
-5. Login en Amazon ECR.
-6. Build de imagen Docker.
-7. Push de imagen a ECR.
-8. Force new deployment del servicio ECS.
-
-Secrets necesarios en GitHub:
+Configuración utilizada:
 
 ```text
-AWS_ACCESS_KEY_ID
-AWS_SECRET_ACCESS_KEY
-AWS_SESSION_TOKEN
+CPU: 0.25 vCPU
+Memoria: 0.5 GB
+Desired count: 1 tarea
+Health check: /api/health
+Logs: CloudWatch Logs
 ```
 
-> En AWS Academy, el `AWS_SESSION_TOKEN` cambia cada vez que se renuevan las credenciales del laboratorio.
+En un entorno productivo, este servicio podría escalar aumentando el número de tareas según métricas como uso de CPU, memoria o cantidad de solicitudes recibidas.
 
 ---
 
@@ -528,6 +344,8 @@ Respuesta esperada:
 ```text
 OK
 ```
+
+---
 
 ### Login
 
@@ -554,6 +372,8 @@ Respuesta esperada:
 }
 ```
 
+---
+
 ### Listar productos
 
 ```http
@@ -561,6 +381,8 @@ GET /api/productos
 ```
 
 Requiere token JWT.
+
+---
 
 ### Crear producto
 
@@ -589,10 +411,12 @@ Respuesta esperada:
 201 Created
 ```
 
+---
+
 ### Modificar producto
 
 ```http
-PUT /api/productos/{id}
+PUT /api/productos/1
 ```
 
 Requiere token JWT.
@@ -616,10 +440,12 @@ Respuesta esperada:
 200 OK
 ```
 
+---
+
 ### Eliminar producto
 
 ```http
-DELETE /api/productos/{id}
+DELETE /api/productos/1
 ```
 
 Requiere token JWT.
@@ -642,51 +468,112 @@ Esto corresponde a un borrado lógico.
 
 ## Uso del token en Postman
 
-1. Ejecutar login en `/api/auth/login`.
-2. Copiar el valor del campo `token`.
-3. Abrir un endpoint protegido, por ejemplo `/api/productos`.
-4. Ir a la pestaña **Auth**.
-5. Seleccionar **Bearer Token**.
-6. Pegar el token.
-7. Enviar la petición.
+Después de realizar login:
 
-También se puede enviar manualmente el header:
+1. Copiar el valor del campo `token`.
+2. Ir al endpoint protegido.
+3. Abrir la pestaña `Auth`.
+4. Seleccionar `Bearer Token`.
+5. Pegar el token.
+6. Enviar la petición.
 
-```text
+También se puede usar el header:
+
+```http
 Authorization: Bearer TOKEN_GENERADO
 ```
 
 ---
 
-## Evidencias
+## Flujo de auditoría con SQS y Lambda
 
-Las evidencias del proyecto se encuentran en la carpeta:
+El microservicio genera eventos de auditoría cuando se realizan operaciones sobre productos.
 
-```text
-evidencias/
-```
-
-El archivo recomendado para revisar las evidencias es:
+Flujo:
 
 ```text
-evidencias/README_EVIDENCIAS_TECHSTORE.md
+Operación en la API
+        ↓
+Evento de auditoría
+        ↓
+Amazon SQS
+        ↓
+AWS Lambda
+        ↓
+CloudWatch Logs
 ```
 
-Ese README explica qué demuestra cada pantallazo y a qué actividad corresponde.
+Este flujo permite procesar información de auditoría de forma asíncrona, desacoplando la operación principal del registro posterior de eventos.
 
-Resumen de cumplimiento por actividad:
+---
 
-| Actividad | Estado |
-|---|---|
-| Actividad 1: Contenerización, ECR, ECS Fargate y ALB | Completada |
-| Actividad 2: SQS, Lambda, RDS, Postman, E2E y CloudWatch | Completada |
-| Actividad 3: API Gateway y restricción de acceso directo | Completada |
-| Actividad 4: CI/CD con GitHub Actions | Completada |
-| Actividad 5: Video demostrativo | Pendiente al momento de preparar evidencias |
+## CI/CD con GitHub Actions
+
+El proyecto incluye un workflow de GitHub Actions para automatizar el despliegue.
+
+El pipeline realiza:
+
+1. Checkout del código.
+2. Configuración de Java 21.
+3. Build con Maven.
+4. Configuración de credenciales AWS.
+5. Login en Amazon ECR.
+6. Construcción de imagen Docker.
+7. Push de imagen hacia ECR.
+8. Actualización del servicio ECS.
+
+> En AWS Academy, el `AWS_SESSION_TOKEN` cambia cada vez que se renuevan las credenciales del laboratorio.  
+> Por este motivo, los secrets de GitHub Actions deben actualizarse cuando el laboratorio se reinicia.
+
+Secrets utilizados en GitHub Actions:
+
+```text
+AWS_ACCESS_KEY_ID
+AWS_SECRET_ACCESS_KEY
+AWS_SESSION_TOKEN
+```
+
+Opcionalmente, según el workflow:
+
+```text
+AWS_REGION
+AWS_ACCOUNT_ID
+ECR_REPOSITORY
+ECS_CLUSTER
+ECS_SERVICE
+```
 
 ---
 
 ## Comandos útiles
+
+### Git
+
+Ver estado del repositorio:
+
+```bash
+git status
+```
+
+Agregar cambios:
+
+```bash
+git add .
+```
+
+Crear commit:
+
+```bash
+git commit -m "mensaje del commit"
+```
+
+Subir cambios:
+
+```bash
+git push origin main
+```
+
+---
 
 ### Docker
 
@@ -708,59 +595,28 @@ Detener Docker Compose:
 docker compose down
 ```
 
-Eliminar contenedores detenidos:
+Levantar nuevamente el proyecto:
+
+```bash
+docker compose up --build
+```
+
+Limpiar contenedores detenidos:
 
 ```bash
 docker container prune -f
 ```
 
-### Docker Swarm
-
-Ver servicios:
-
-```bash
-docker service ls
-```
-
-Ver tareas de un stack:
-
-```bash
-docker stack ps techstore
-```
-
-Eliminar stack:
-
-```bash
-docker stack rm techstore
-```
-
-### PostgreSQL local
-
-Entrar al contenedor de PostgreSQL:
-
-```bash
-docker exec -it techstore-2-postgres-1 psql -U admin -d techstore
-```
-
-Ver tablas:
-
-```sql
-\dt
-```
-
-Consultar productos:
-
-```sql
-SELECT * FROM productos;
-```
-
-Salir:
-
-```sql
-\q
-```
+---
 
 ### AWS CLI
+
+> **Nota sobre los comandos AWS CLI:**  
+> Los comandos de esta sección se incluyen como apoyo técnico y como referencia para verificar o reproducir la configuración realizada en AWS.  
+> Durante el desarrollo del proyecto se trabajó principalmente desde la consola web de AWS y también se utilizaron comandos equivalentes de AWS CLI para avanzar más rápido, validar recursos y obtener evidencias.  
+> Estos comandos fueron preparados tomando como referencia la documentación de AWS, las opciones disponibles en la consola web y apoyo de herramientas de asistencia técnica. 
+>
+> En AWS Academy, el `AWS_SESSION_TOKEN` cambia cada vez que se renuevan las credenciales del laboratorio, por lo que algunos comandos pueden requerir actualizar las credenciales antes de ejecutarse nuevamente.
 
 Validar identidad:
 
@@ -800,58 +656,91 @@ MSYS_NO_PATHCONV=1 aws logs tail "/ecs/techstore-api" \
   --format short
 ```
 
-> **Nota sobre los comandos AWS CLI:**  
-> Los comandos de esta sección se incluyen como apoyo técnico y como referencia para verificar o reproducir la configuración realizada en AWS Academy.  
-> Estos comandos fueron preparados tomando como referencia la documentación de AWS, las opciones disponibles en la consola web y el apoyo de herramientas de asistencia técnica e IA.
+---
+
+## Evidencias técnicas
+
+El proyecto cuenta con evidencias organizadas por actividad y recurso.
+
+Las evidencias permiten verificar:
+
+- Imagen Docker publicada en ECR.
+- Servicio ECS activo.
+- Tarea Fargate en ejecución.
+- Target Group en estado Healthy.
+- Health check respondiendo correctamente.
+- RDS PostgreSQL disponible.
+- Cola SQS creada.
+- Lambda conectada a SQS.
+- Logs de aplicación en CloudWatch.
+- Logs de auditoría generados por Lambda.
+- API Gateway creado e integrado con ALB.
+- Security Groups configurados.
+- Pipeline de GitHub Actions ejecutado correctamente.
+- Pruebas realizadas con Postman.
+
+Tabla resumen:
+
+| Área | Evidencia esperada |
+|---|---|
+| ECR | Imagen `techstore-api:latest` publicada |
+| ECS | Servicio activo y tarea en ejecución |
+| ALB | Balanceador activo y DNS disponible |
+| Target Group | Estado Healthy |
+| RDS | Base de datos PostgreSQL disponible |
+| SQS | Cola creada para auditoría |
+| Lambda | Trigger SQS configurado |
+| CloudWatch | Logs del microservicio y de Lambda |
+| API Gateway | Ruta pública hacia el ALB |
+| GitHub Actions | Workflow ejecutado correctamente |
+| Postman | Login JWT y CRUD de productos |
 
 ---
 
-## Variables de entorno importantes
+## Mejora propuesta
 
-Variables usadas por `techstore-api`:
+Como oportunidad de mejora futura, se propone incorporar **AWS Secrets Manager** para administrar credenciales sensibles del sistema.
 
-```text
-SERVER_PORT
-SPRING_DATASOURCE_URL
-SPRING_DATASOURCE_USERNAME
-SPRING_DATASOURCE_PASSWORD
-JWT_SECRET
-JWT_EXPIRATION
-AWS_REGION
-AWS_SQS_QUEUE_URL
-```
+Actualmente, variables como la contraseña de la base de datos, el secreto JWT y otras configuraciones sensibles pueden ser entregadas al contenedor mediante variables de entorno. Aunque esto funciona para un entorno de laboratorio, en un entorno productivo es más seguro centralizar estos valores en un servicio especializado.
 
-No se deben subir al repositorio:
+Con AWS Secrets Manager se podría:
 
-```text
-Contraseña de RDS
-JWT_SECRET real de producción
-AWS_ACCESS_KEY_ID
-AWS_SECRET_ACCESS_KEY
-AWS_SESSION_TOKEN
-.env
-credentials
-techstore-api-task.json con valores sensibles
-```
+- Evitar exponer credenciales sensibles en definiciones de tarea.
+- Centralizar la administración de secretos.
+- Facilitar la rotación de contraseñas.
+- Mejorar la seguridad general de la arquitectura.
+- Separar la configuración sensible del código fuente.
+- Reducir el riesgo de exposición accidental en evidencias o repositorios.
+
+Esta mejora no fue implementada como parte del alcance actual, pero se plantea como una evolución técnica para fortalecer la seguridad del despliegue cloud.
+
+---
+
+## Declaración de uso de IA
+
+Durante el desarrollo y documentación del proyecto se utilizó IA como apoyo para ordenar ideas, mejorar redacción, estructurar evidencias.
+
+Las decisiones técnicas, configuración de recursos, pruebas, validaciones y conclusiones fueron revisadas por el equipo según el funcionamiento real del proyecto TechStore en AWS.
 
 ---
 
 ## Estado final del proyecto
 
 - API REST funcional.
-- Login con JWT funcionando.
+- Autenticación JWT implementada.
 - CRUD de productos funcionando.
 - Borrado lógico implementado.
-- PostgreSQL local funcionando con Docker.
-- PostgreSQL en AWS RDS funcionando.
-- Auditoría hacia SQS implementada.
-- Lambda procesando mensajes de SQS.
-- Logs disponibles en CloudWatch.
-- Imagen Docker subida a ECR.
+- PostgreSQL funcionando en entorno local y AWS.
+- Proyecto dockerizado.
+- Docker Compose funcionando para entorno local.
+- Imagen publicada en Amazon ECR.
 - Servicio desplegado en ECS Fargate.
-- ALB funcionando con Target Group Healthy.
-- API Gateway HTTP configurado sobre el ALB.
-- Restricción de puerto 8080 aplicada mediante Security Group.
-- Pipeline GitHub Actions configurado y validado.
-- Evidencias organizadas por actividad.
-- Proyecto listo para presentación y video demostrativo.
+- Application Load Balancer activo.
+- Target Group en estado Healthy.
+- API Gateway configurado como punto de entrada.
+- SQS integrado para auditoría.
+- Lambda procesando mensajes de auditoría.
+- CloudWatch registrando logs.
+- Pipeline CI/CD configurado con GitHub Actions.
+- Pruebas realizadas con Postman.
+- Proyecto subido a GitHub.
